@@ -47,11 +47,11 @@ def get_teleinfo(Cport, app_buffer, timeout = 5):
 
 
 def checksum(textval):
-  cksum = 0;
+  cksum = 0
   for acharidx in range(len(textval) - 4):
     cksum += ord(textval[acharidx])
-  cksum = (cksum & 0x00003F) + 0x20;
-  return cksum;
+  cksum = (cksum & 0x00003F) + 0x20
+  return cksum
 
 def main():
     serialport = serial.Serial("/dev/ttyS0", baudrate=1200, timeout=5.0)
@@ -67,9 +67,7 @@ def main():
             else:
               logging.error('No data')
     except:
-            logging.error(traceback.format_exc())
-            print traceback.format_exc()
-
+            logging.exception('Main error')
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
     main()
