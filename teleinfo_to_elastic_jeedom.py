@@ -21,6 +21,115 @@ default_jeedom_mapping = {
   'IINST3' : 741,
   }
 
+SPEC_DATA_TYPE = {
+    "ADCO" : str,
+    "OPTARIF" : str,
+    "BASE" : int,
+    "HCHC" : int,
+    "HCHP" : int,
+    "EJPHN" : int,
+    "EJPHPM" : int,
+    "GAZ" : int,
+    "AUTRE" : int,
+    "PTEC" : str,
+    "MOTDETAT" : str,
+    "ISOUSC" : int,
+    "BBRHCJB" : int,
+    "BBRHPJB" : int,
+    "BBRHCJW" : int,
+    'BBRHPJW' : int,
+    "BBRHCJR" : int,
+    "BBRHPJR" : int,
+    "PEJP" : int,
+    "DEMAIN" : str,
+    "IINST" : int,
+    "IINST1" : int,
+    "IINST2" : int,
+    "IINST3" : int,
+    "ADPS" : int,
+    "IMAX" : int,
+    "IMAX1" : int,
+    "IMAX2" : int,
+    "IMAX3" : int,
+    "HHPHC" : str,
+    "PAPP" : int,
+    "PPOT" : str,
+    "ADIR1" : int,
+    "ADIR2" : int,
+    "ADIR3" : int,
+    "ADSC" : str,
+    "VTIC" : str,
+    "DATE" : str,
+    "NGTF" : str,
+    "LTARF" : str,
+    "EAST" : int,
+    "EASF01" : int,
+    "EASF02" : int,
+    "EASF03" : int,
+    "EASF04" : int,
+    "EASF05" : int,
+    "EASF06" : int,
+    "EASF07" : int,    
+    "EASF08" : int,
+    "EASF09" : int,
+    "EASF10" : int,
+    "EASD01" : int,
+    "EASD02" : int,
+    "EASD03" : int,
+    "EASD04" : int,
+    "EAIT" : int,
+    "ERQ1" : int,
+    "ERQ2" : int,
+    "ERQ3" : int,
+    "ERQ4" : int,
+    "IRMS1" : int,
+    "IRMS2" : int,
+    "IRMS3" : int,
+    "URMS1" : int,
+    "URMS2" : int,
+    "URMS3" : int,
+    "PREF" : int,
+    "PCOUP" : int,
+    "SINSTS" : int,
+    "SINSTS1" : int,
+    "SINSTS2" : int,
+    "SINSTS3" : int,
+    "SMAXSN" : int,
+    "SMAXSN1" : int,
+    "SMAXSN2" : int,
+    "SMAXSN3" : int,
+    "SMAXSN-1" : int,
+    "SMAXSN1-1" : int,
+    "SMAXSN2-1" : int,
+    "SMAXSN3-1" : int,    
+    "SINSTI" : int,
+    "SMAXIN" : int,
+    "SMAXIN-1" : int,
+    "CCASN" : int,
+    "CCASN-1" : int,
+    "CCAIN" : int,
+    "CCAIN-1" : int,
+    "UMOY1" : int,
+    "UMOY2" : int,
+    "UMOY3" : int,
+    "STGE" : str,   
+    "DPM1" : str,    
+    "FPM1" : str,    
+    "DPM2" : str,    
+    "FPM2" : str,    
+    "DPM3" : str,    
+    "FPM3" : str,    
+    "MSG1" : str,    
+    "MSG2" : str,    
+    "PRM" : str,    
+    "RELAIS" : str,    
+    "NTARF" : str, 
+    "NJOURF" : str, 
+    "NJOURF+1" : str, 
+    "PJOURF+1" : str, 
+    "PPOINTE" : str, 
+}
+
 startFrame = 0x02
 endFrame = 0x03
 
@@ -137,15 +246,24 @@ class TeleInfoRetriever():
                 except:
                     logger.exception('Error while sending to Jeedom')
 
+    def format_data(self, data, allowed_data=SPEC_DATA_TYPE):
+        result = {}
+        for key, val in data.items():
+            if key in allowed_data:
+                result[key] = allowed_data[key](val)
+        result['date'] = data['date']
+        return result
 
-    def push_to_elastic(self, elec_data):
+    def push_to_elastic(self, elec_data, allowed_data=SPEC_DATA_TYPE):
         try:
-            self.ES.index(index=self.index, body=elec_data)
+            data = self.format_data(elec_data, allowed_data)
+            self.ES.index(index=self.index, body=data, id=data['date'].strftime('%Y%m%d%H%M%S'))
             backup = load_items()
             while len(backup) > 0:
                 my_info = backup.pop()
+                data = self.format_data(my_info, allowed_data)
                 try:
-                    self.ES.index(index=self.index, body=my_info)
+                    self.ES.index(index=self.index, body=data, id=data.get('date'))
                 except:
                     logging.exception(u'Cannot index document')
                     break
