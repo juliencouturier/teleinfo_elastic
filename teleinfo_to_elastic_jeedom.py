@@ -186,7 +186,7 @@ class TeleInfoRetriever():
 
     def __init__(self, *args, **kwargs):
         self.serialport = serial.Serial(kwargs.get('serial_port', "/dev/ttyS0"), baudrate=kwargs.get('baud_rate', 1200), timeout=5.0)
-        self.index = kwargs.get('elastic_index', 'elec')
+        self.index = kwargs.get('elastic_index', 'elec.%Y')
         self.ES = elasticsearch.Elasticsearch(kwargs.get('elastic_url', 'http://127.0.0.1:9200').split(','), retry_on_timeout=True, max_retries=5)
         self.jeedom_mapping = kwargs.get('jeedom_mapping', default_jeedom_mapping)
         self.jeedom_url = kwargs.get('jeedom_url', 'http://127.0.0.1/core/api/jeeApi.php')
@@ -257,13 +257,18 @@ class TeleInfoRetriever():
     def push_to_elastic(self, elec_data, allowed_data=SPEC_DATA_TYPE):
         try:
             data = self.format_data(elec_data, allowed_data)
-            self.ES.index(index=self.index, body=data, id=data['date'].strftime('%Y%m%d%H%M%S'))
+            self.ES.index(index=data['date'].strftime(self.index), body=data, id=data['date'].strftime('%Y%m%d%H%M%S'))
             backup = load_items()
             while len(backup) > 0:
                 my_info = backup.pop()
                 data = self.format_data(my_info, allowed_data)
                 try:
-                    self.ES.index(index=self.index, body=data, id=data.get('date'))
+                    date_metric = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S')
+                except:
+                    logging.exception(u'Document date is invalid : %s', data['date'])
+                    continue
+                try:
+                    self.ES.index(index=date_metric.strftime(self.index), body=data, id=date_metric.strftime('%Y%m%d%H%M%S'))
                 except:
                     logging.exception(u'Cannot index document')
                     break
@@ -309,7 +314,7 @@ if __name__ == '__main__':
                         help='Jeedom API Key')
     parser.add_argument('-e', '--elastic_url', type=str, default='http://127.0.0.1:9200',
                         help='Elastic URL')
-    parser.add_argument('-i', '--elastic_index', type=str, default='elec',
+    parser.add_argument('-i', '--elastic_index', type=str, default='elec.%Y',
                         help='Elastic index to store data')
     parser.add_argument('-p', '--serial_port', type=str, default='/dev/ttyS0',
                         help='Incoming data serial port')
