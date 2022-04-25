@@ -9,7 +9,9 @@ import json
 import os
 from json import JSONEncoder
 from datetime import datetime
+from tzlocal import get_localzone
 
+SYSTEM_TZ = get_localzone()
 
 default_jeedom_mapping = {
   'HCHC' : 737,
@@ -138,7 +140,7 @@ logger = logging.getLogger(__name__)
 class JSONDateTimeEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
-            return obj.strftime('%Y-%m-%dT%H:%M:%S')
+            return obj.strftime('%Y-%m-%dT%H:%M:%S%z')
         elif isinstance(obj, datetime.date):
             return obj.strftime('%Y-%m-%d')
         # Let the base class default method raise the TypeError
@@ -240,7 +242,7 @@ class TeleInfoRetriever():
         for anelt, cmd_id in self.jeedom_mapping.items():
             if anelt in elec_data:
                 try:
-                    r = requests.get('%s?apikey=%s&type=virtual&id=%s&value=%s' % (self.jeedom_url, self.jeedom_key, cmd_id, elec_data[anelt]))
+                    r = requests.get('%s?apikey=%s&plugin=virtual&type=event&id=%s&value=%s' % (self.jeedom_url, self.jeedom_key, cmd_id, elec_data[anelt]))
                     if r.status_code != 200:
                         logger.error('Jeedom does not accept the value for command %s : %s'%(cmd_id, r.content))
                 except:
@@ -263,7 +265,7 @@ class TeleInfoRetriever():
                 my_info = backup.pop()
                 data = self.format_data(my_info, allowed_data)
                 try:
-                    date_metric = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S')
+                    date_metric = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S%z')
                 except:
                     logging.exception(u'Document date is invalid : %s', data['date'])
                     continue
@@ -283,7 +285,7 @@ class TeleInfoRetriever():
             teleinfo_data = self.get_teleinfo()
             # print(teleinfo_data)
             if len(teleinfo_data) > 1:
-                teleinfo_data['date'] = datetime.now()
+                teleinfo_data['date'] = SYSTEM_TZ.localize(datetime.now())
                 self.push_to_jeedom(teleinfo_data, **kwargs)
                 self.push_to_elastic(teleinfo_data)
                 return 1
