@@ -252,7 +252,11 @@ class TeleInfoRetriever():
         result = {}
         for key, val in data.items():
             if key in allowed_data:
-                result[key] = allowed_data[key](val)
+                try:
+                    result[key] = allowed_data[key](val)
+                except:
+                    logging.warning('%s is not a valid %s', val, key)
+                    result[key] = None
         result['date'] = data['date']
         return result
 
