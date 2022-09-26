@@ -1,3 +1,5 @@
 pyserial
 elasticsearch
 requests
+python-dateutil
+tzlocal

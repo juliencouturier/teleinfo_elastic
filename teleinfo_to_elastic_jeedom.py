@@ -10,6 +10,8 @@ import os
 from json import JSONEncoder
 from datetime import datetime
 from tzlocal import get_localzone
+from dateutil import parser as dateparser
+
 
 SYSTEM_TZ = get_localzone()
 
@@ -269,7 +271,7 @@ class TeleInfoRetriever():
                 my_info = backup.pop()
                 data = self.format_data(my_info, allowed_data)
                 try:
-                    date_metric = datetime.strptime(data['date'], '%Y-%m-%dT%H:%M:%S%z')
+                    date_metric = dateparser.parse(data['date'])
                 except:
                     logging.exception(u'Document date is invalid : %s', data['date'])
                     continue
